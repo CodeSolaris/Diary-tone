@@ -1,17 +1,41 @@
 import streamlit as st
 import plotly.express as px
-import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
+from glob import glob
+
+files = glob("**/*.txt")
+
 
 def get_sentiment_scores(text):
-    sid_obj = SentimentIntensityAnalyzer()
-    sentiment_dict = sid_obj.polarity_scores(text)
-    sentiment_dict.pop("compound")
-    return sentiment_dict
+    dates_lst = []
+    positivity_lst = []
+    negativity_lst = []
+    for file in files:
+        with open(file, "r") as f:
+            text = f.read()
+            analyser = SentimentIntensityAnalyzer()
+            scores = analyser.polarity_scores(text)
+
+        dates_lst.append(file.split(".")[0].removeprefix("diary\\"))
+        positivity_lst.append(scores["pos"])
+        negativity_lst.append(scores["neg"])
+    return dates_lst, positivity_lst, negativity_lst
+
+
+dates, positivity, negativity = get_sentiment_scores(files)
+
 st.title("Diary Tone")
-st.write("Positivity")
 
-figure = px.line(x=positivity, y=dates, labels={"x": "Positivity", "y": "Date"})
-plotly_chart = st.plotly_chart(figure=None)
 
-st.write("Negativity")
+def generate_line_chart(x, y, x_label):
+    figure = px.line(x=x, y=y, labels={"x": x_label, "y": "Date"})
+    st.plotly_chart(figure)
+
+
+# Positivity
+st.subheader("Positivity")
+generate_line_chart(positivity, dates, "Positivity")
+
+# Negativity
+st.subheader("Negativity")
+generate_line_chart(negativity, dates, "Negativity")
